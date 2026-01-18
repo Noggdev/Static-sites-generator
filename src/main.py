@@ -88,6 +88,10 @@ def generate_pages_recursive(base_path, dir_path_content, template_path, dest_di
 
     with open(template_path, "r", encoding="utf-8") as f:
         template_content = f.read()
+    if base_path != "/":
+        template_content = template_content.replace(
+            'href="/index.css"', f'href="{base_path}index.css"'
+        )
     os.makedirs(dest_dir_path, exist_ok=True)
     gen_recursive(dir_path_content, dest_dir_path)
 
