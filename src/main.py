@@ -1,8 +1,24 @@
-from textnode import TextNode, TextType
 from markdown_to_html_node import markdown_to_html_node
 import os
 import sys
 import shutil
+
+
+def update_urls(node, base_path):
+    if node.props:
+        if node.tag == "a" and "href" in node.props:
+            href = node.props["href"]
+            if href.startswith("/"):
+                node.props["href"] = base_path.rstrip("/") + href
+
+        if node.tag == "img" and "src" in node.props:
+            src = node.props["src"]
+            if src.startswith("/"):
+                node.props["src"] = base_path.rstrip("/") + src
+
+    if hasattr(node, "children") and node.children:
+        for child in node.children:
+            update_urls(child, base_path)
 
 
 def extract_title(markdown: str) -> str:
@@ -42,37 +58,16 @@ def copy_static_to_docs() -> None:
     copy_recursive(src_dir, dst_dir)
 
 
-def generate_page(from_path, template_path, dest_path):
-    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
-
-    with open(from_path, "r", encoding="utf-8") as f:
-        markdown_content = f.read()
-    with open(template_path, "r", encoding="utf-8") as f:
-        template_content = f.read()
-
-    root_node = markdown_to_html_node(markdown_content)
-    html_text = root_node.to_html()
-    title = extract_title(markdown_content)
-    template_content = template_content.replace("{{ Title }}", title)
-    template_content = template_content.replace("{{ Content }}", html_text)
-    dest_dir_path = os.path.dirname(dest_path)
-    if dest_dir_path != "":
-        os.makedirs(dest_dir_path, exist_ok=True)
-    with open(dest_path, "w", encoding="utf-8") as f:
-        f.write(template_content)
-
-
 def generate_pages_recursive(base_path, dir_path_content, template_path, dest_dir_path):
     def generate_html_text(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             markdown_content = f.read()
         root_node = markdown_to_html_node(markdown_content)
+        update_urls(root_node, base_path)
         html_text = root_node.to_html()
         title = extract_title(markdown_content)
         page_content = template_content.replace("{{ Title }}", title)
         page_content = page_content.replace("{{ Content }}", html_text)
-        page_content = page_content.replace('href="/', f'href="{base_path}')
-        page_content = page_content.replace('src="/', f'src="{base_path}')
         return page_content
 
     def gen_recursive(current_src, current_dst):
