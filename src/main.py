@@ -1,6 +1,7 @@
 from textnode import TextNode, TextType
 from markdown_to_html_node import markdown_to_html_node
 import os
+import sys
 import shutil
 
 
@@ -17,10 +18,10 @@ def extract_title(markdown: str) -> str:
     raise Exception("No H1 title found in markdown")
 
 
-def copy_static_to_public() -> None:
+def copy_static_to_docs() -> None:
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     src_dir = os.path.join(project_root, "static")
-    dst_dir = os.path.join(project_root, "public")
+    dst_dir = os.path.join(project_root, "docs")
 
     if os.path.exists(dst_dir):
         shutil.rmtree(dst_dir)
@@ -61,7 +62,7 @@ def generate_page(from_path, template_path, dest_path):
         f.write(template_content)
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(base_path, dir_path_content, template_path, dest_dir_path):
     def generate_html_text(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             markdown_content = f.read()
@@ -70,6 +71,8 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
         title = extract_title(markdown_content)
         page_content = template_content.replace("{{ Title }}", title)
         page_content = page_content.replace("{{ Content }}", html_text)
+        page_content = page_content.replace('href="/', f'href="{base_path}')
+        page_content = page_content.replace('src="/', f'src="{base_path}')
         return page_content
 
     def gen_recursive(current_src, current_dst):
@@ -95,8 +98,12 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
 
 
 def main():
-    copy_static_to_public()
-    generate_pages_recursive("content/", "template.html", "public/")
+    if len(sys.argv) > 1:
+        base_path = sys.argv[1]
+    else:
+        base_path = "/"
+    copy_static_to_docs()
+    generate_pages_recursive(base_path, "content/", "template.html", "docs/")
 
 
 if __name__ == "__main__":
